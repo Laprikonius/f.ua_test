@@ -128,27 +128,39 @@
                         COUNT(p.id) AS product_count,
                         MIN(p.price) AS min_price,
                         MAX(p.price) AS max_price,
-                        p.name AS product_with_longest_description,
-                        LENGTH(p.description) AS longest_description_length,
-                        p.description AS longest_description_text
+                        sub_p.longest_description_product AS product_with_longest_description,
+                        sub_p.longest_description_length AS longest_description_length,
+                        sub_p.longest_description_text AS longest_description_text
                     FROM
                         categories c
                     JOIN
                         products p ON c.id = p.category_id
                     JOIN
                         (
-                            SELECT 
+                            SELECT
                                 category_id,
-                                name,
-                                description,
-                                ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY LENGTH(description) DESC) AS rn
-                            FROM 
-                                products
-                        ) sub_p ON p.category_id = sub_p.category_id AND p.name = sub_p.name
-                    WHERE
-                        sub_p.rn = 1
+                                name AS longest_description_product,
+                                LENGTH(description) AS longest_description_length,
+                                description AS longest_description_text
+                            FROM
+                                (
+                                    SELECT
+                                        category_id,
+                                        name,
+                                        description,
+                                        ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY LENGTH(description) DESC) AS rn
+                                    FROM
+                                        products
+                                ) ranked_products
+                            WHERE
+                                rn = 1
+                        ) sub_p ON c.id = sub_p.category_id
                     GROUP BY
-                        c.id, c.name, p.name, p.description
+                        c.id,
+                        c.name,
+                        sub_p.longest_description_product,
+                        sub_p.longest_description_length,
+                        sub_p.longest_description_text
                     ORDER BY
                         c.name;')
                     ->fetchAll(PDO::FETCH_ASSOC);
