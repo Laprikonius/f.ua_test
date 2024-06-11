@@ -49,6 +49,9 @@
         .ASCII_table {
             text-align: center;
         }
+        .ASCII_table i {
+            font-style: normal;
+        }
     </style>
     <div class="main_wrapper">
         <div class="main_container">
@@ -125,7 +128,7 @@
                 $query = $dbh->query('SELECT c.name AS category_name, count(*) AS cnt, MIN(price) AS min_price, MAX(price) AS max_price, 
                     (SELECT description FROM products WHERE LENGTH(description) = (SELECT MAX(LENGTH(description)) FROM products)) AS max_description 
                     -- (SELECT description FROM products WHERE LENGTH(description) = (SELECT MAX(LENGTH(description)) FROM products)) AS max_category_description 
-                    FROM products AS p INNER JOIN categories AS c ON p.category_id = c.id GROUP BY c.name')->fetchAll();
+                    FROM products AS p INNER JOIN categories AS c ON p.category_id = c.id GROUP BY c.name')->fetchAll(PDO::FETCH_ASSOC);
             ?>
             <pre>
                 <? var_dump($dbh, $query); ?>
@@ -185,8 +188,9 @@
                 $row_cells = row_cells($row_cells, $columns_headers, $columns_lengths);
                 echo $row_cells . $nl;
                 echo str_repeat($row_spacer . $nl, SPACING_Y);
+                echo $row_separator . $nl;
             }
-            echo $row_separator . $nl;
+            //echo $row_separator . $nl;
 
             echo '</pre>';
 
@@ -257,7 +261,12 @@
         {
             $row = '';
             foreach ($columns_headers as $header) {
-                $row .= LINE_Y_CHAR . str_repeat(' ', SPACING_X) . str_pad($row_cells[$header], SPACING_X + $columns_lengths[$header], ' ', STR_PAD_RIGHT);
+                $columnColor = "";
+                if ($header == 'Color')
+                {
+                    $columnColor = "<i style='color: " . $row_cells[$header] . "'>";
+                }
+                $row .= $columnColor . LINE_Y_CHAR . str_repeat(' ', SPACING_X) . str_pad($row_cells[$header], SPACING_X + $columns_lengths[$header], ' ', STR_PAD_RIGHT) . "</i>";
             }
             $row .= LINE_Y_CHAR;
 
