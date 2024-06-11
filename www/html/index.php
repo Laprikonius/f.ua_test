@@ -123,16 +123,42 @@
 
                 $dbh = new PDO('mysql:host=' . $localhost . ';dbname=' . $dbname . '', $user, $pass);
 
-                //$uqery = $dbh->query('SELECT description FROM products WHERE LENGTH(description) = (SELECT MAX(LENGTH(description)) FROM products)')->fetchAll();
-
-                $query = $dbh->query('SELECT c.name AS category_name, count(*) AS cnt, MIN(price) AS min_price, MAX(price) AS max_price, 
-                    (SELECT description FROM products WHERE LENGTH(description) = (SELECT MAX(LENGTH(description)) FROM products)) AS max_description 
-                    -- (SELECT description FROM products WHERE LENGTH(description) = (SELECT MAX(LENGTH(description)) FROM products)) AS max_category_description 
-                    FROM products AS p INNER JOIN categories AS c ON p.category_id = c.id GROUP BY c.name')->fetchAll(PDO::FETCH_ASSOC);
+                $query = $dbh->query('SELECT
+                        c.name AS category_name,
+                        COUNT(p.id) AS product_count,
+                        MIN(p.price) AS min_price,
+                        MAX(p.price) AS max_price,
+                        p.name AS product_with_longest_description,
+                        LENGTH(p.description) AS longest_description_length,
+                        p.description AS longest_description_text
+                    FROM
+                        categories c
+                    JOIN
+                        products p ON c.id = p.category_id
+                    JOIN
+                        (
+                            SELECT 
+                                category_id,
+                                name,
+                                description,
+                                ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY LENGTH(description) DESC) AS rn
+                            FROM 
+                                products
+                        ) sub_p ON p.category_id = sub_p.category_id AND p.name = sub_p.name
+                    WHERE
+                        sub_p.rn = 1
+                    GROUP BY
+                        c.id, c.name, p.name, p.description
+                    ORDER BY
+                        c.name;')
+                    ->fetchAll(PDO::FETCH_ASSOC);
             ?>
-            <pre>
-                <? var_dump($dbh, $query); ?>
-            </pre>
+                <pre>
+                    <? var_dump($query); ?>
+                </pre>
+                <pre>
+                    <? print_r(json_encode($query, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) ?>
+                </pre>
             </div>
         </div>
     </div>
